@@ -1,0 +1,4 @@
+interface:
+  display_name: "Isaac Scene and Policy Transfer"
+  short_description: "Transfer reconstructed scenes into native policy evaluation"
+  default_prompt: "Use $isaac-scene-policy to import a reconstructed scene and trajectory into Isaac Sim and validate policy rollout."

@@ -1,0 +1,49 @@
+# Acceptance rubric for a reconstructed scene (geometry + appearance + physics). Every criterion is judged
+# separately; none compensates another. Measurement protocol: skills/evaluate-scene/SKILL.md.
+rubric: scene
+version: 0.2.0
+fidelity_levels:
+  usable:
+    iou_mean_min: 0.90
+    iou_min_min: 0.80
+    boundary_p95_px_median_max: 8
+    edge_f_min: 0.65                # orientation-aware edge F-score at 2 px (geometry_metrics edge_f)
+    penetration_mm_max: 2
+    settle_drift_mm_max: 5
+    settle_rot_deg_max: 3
+    static_ssim_min: 0.75
+    object_lpips_max: 0.30
+  precise:
+    iou_mean_min: 0.94
+    iou_min_min: 0.88
+    boundary_p95_px_median_max: 5
+    edge_f_min: 0.75
+    penetration_mm_max: 1
+    settle_drift_mm_max: 2
+    settle_rot_deg_max: 1
+    static_ssim_min: 0.85
+    object_lpips_max: 0.20
+criteria:
+  valid_ir:          {gate: hard, check: "scene_ir.validate ok; provenance on cameras, every entity, every geometry/material/physics value"}
+  inputs_respected:  {gate: hard, check: "only supplied inputs used (observation.yaml); withheld files never read"}
+  cameras_scale:     {gate: hard, check: "intrinsics and poses cross-checked by an independent method; >= 2 independent scale cues compared; rejected cues have reasons; uncertainty stated; when metric observations are supplied (hand tracks, robot, calibration, measurements) at least one cue comes from them (category priors alone are insufficient); a uniform rescale is invisible in the source video, so pixel metrics cannot confirm scale"}
+  object_alignment:  {gate: hard, check: "geometry_metrics over all distinct frames of every rest state within iou_mean_min, iou_min_min, boundary_p95_px_median_max"}
+  object_structure:  {gate: hard, check: "objects with salient interior structure (openings, slots, rims, handles): edge_f mean >= edge_f_min over the state's frames; every object, by inspection: salient parts (openings, slots, rims, handles, lugs, lids) present in the right number and place; proportions match close-up crops"}
+  object_scale:      {gate: hard, check: "extents plausible for the category and consistent with the scale cues"}
+  completion_labelled: {gate: hard, check: "hidden/generated parts labelled completed/generated; no visibly wrong completion in turntables"}
+  scene_clean:       {gate: hard, check: "background-only renders, novel views and turntables free of hands, equipment, cables, baked shadows, inpainting blobs, ghost outlines (sam3_segment detections + inspection); texture images free of the same"}
+  materials:         {gate: hard, check: "static surfaces are not raw video copies (synthesized from a clean exemplar, procedural or proven clean); object textures without visible observed/completed seams or stretching"}
+  lighting:          {gate: hard, check: "one rig; objects cast/receive shadows; shadow direction/softness resemble the video; no emission except clean background imagery"}
+  physics:           {gate: hard, check: "mujoco_check default sets: deepest penetration <= penetration_mm_max, every body settles within drift/rotation limits; containers keep their cavity"}
+  appearance:        {gate: hard, check: "source frames: static regions SSIM >= static_ssim_min, object regions LPIPS <= object_lpips_max; colours and brightness agree by inspection (raw numbers reported; camera response, if modelled, reported separately)"}
+  deliverables:      {gate: hard, check: "blender/scene.blend reopens and reproduces the in-memory render; mujoco/scene.xml loads; WORKING.md documents decisions and open issues"}
+soft_scores: [iou_mean, edge_f, static_ssim, object_lpips, psnr_db]
+owner_on_failure:
+  cameras_scale: cameras
+  object_alignment: geometry
+  object_structure: geometry
+  object_scale: cameras/geometry
+  scene_clean: appearance (or masks when hands were not masked)
+  materials: appearance
+  lighting: appearance
+  physics: geometry

@@ -1,0 +1,70 @@
+# Acceptance rubric for a physically executed robot trajectory replacing a demonstration (trajectory stage).
+# Every criterion is judged separately. Protocol: skills/generate-trajectory/SKILL.md (measurement section).
+rubric: trajectory
+version: 0.3.0
+fidelity_levels:
+  usable:
+    # metric hand tracks are the scale reference: placed rigidly; the scene is rescaled if it disagrees
+    keypoint_to_glove_px_max: 6           # median over held-out frames of per-frame median keypoint->glove distance
+    glove_to_hand_px_max: 35              # median of glove-pixel -> projected-bone distance (glove explained by hand)
+    on_glove_frac_min: 0.8                # tracked hands that land on a glove (held-out frames)
+    scene_scale_tol: 0.06                 # |f_cue / f_applied - 1| for >= 2 independent cues after any revision
+    robot_hand_scale: [0.8, 1.15]         # rendered robot hand vs real glove, normalised by metric hand lengths
+    contact_delay_frames_max: 8           # sim robot-object contact start/end vs grasp/release events of the tracks
+    penetration_mm_max: {object_robot: 3.0, robot_static: 3.0, object_static: 2.0, robot_robot: 1.0}
+    joint_limit_violation_rad_max: 0.01
+    actuator_saturation_frac_max: 0.05
+    tracking_err_rad_p99_max: 0.15
+    object_final_pos_cm_max: 3.0
+    object_final_rot_deg_max: 25
+    event_delay_frames_max: 10            # lift-off / settle vs the video's rest-state boundaries
+    object_iou_mean_min: 0.55             # manipulated object, sim vs tracked mask (hands ignored), whole episode
+    hand_precision_mean_min: 0.5          # robot-hand pixels inside the human hand region, frames with a hand
+    # Photometric acceptance belongs to rubrics/realism.yaml.
+  precise:
+    keypoint_to_glove_px_max: 3
+    glove_to_hand_px_max: 25
+    on_glove_frac_min: 0.9
+    scene_scale_tol: 0.03
+    robot_hand_scale: [0.88, 1.08]
+    contact_delay_frames_max: 4
+    penetration_mm_max: {object_robot: 1.5, robot_static: 1.5, object_static: 1.0, robot_robot: 0.5}
+    joint_limit_violation_rad_max: 0.0
+    actuator_saturation_frac_max: 0.01
+    tracking_err_rad_p99_max: 0.08
+    object_final_pos_cm_max: 1.5
+    object_final_rot_deg_max: 10
+    event_delay_frames_max: 4
+    object_iou_mean_min: 0.7
+    hand_precision_mean_min: 0.65
+    # Photometric acceptance belongs to rubrics/realism.yaml.
+criteria:
+  inputs_respected:  {gate: hard, check: "only the request's inputs used (observation.yaml); withheld files, other projects and real robot data never read"}
+  robot_unchanged:   {gate: hard, check: "scene robots[*].bundle_sha256 equals observation robot_description.bundle_sha256 (or scene_ir.bundle_compatible says 'appearance': a published appearance-only revision); the bundle folder is untouched by the builder; the robot is moved only by its actuators"}
+  upstream_scene:    {gate: hard, check: "stages.scene_drift unchanged, or declared revisions (scene/revisions.yaml: what, why, evidence; scene_rescale reports projection_max_px_change < 0.5 px) and the affected scene-rubric items re-measured"}
+  tracks_rigid:      {gate: hard, check: "scene.registrations.<tracks> is rigid (validate); the reference palm/finger targets are derived from the unscaled tracks (re-derive T_world_tracks @ track points and compare with the reference motion); no scale is applied to the tracks anywhere in the builder's code"}
+  scene_metric_scale: {gate: hard, check: ">= 2 independent cues from the metric tracks (registration with contacts, transport distance, grip aperture, ...) agree with the applied scene scale within scene_scale_tol; disagreeing cues explained"}
+  registration:      {gate: hard, check: "rigid T_world_tracks from video evidence + track-derived contacts (handkit events, not guessed frames); video_compare tracks reprojection on frames not used for fitting: keypoint_to_glove_px_max, glove_to_hand_px_max, on_glove_frac_min"}
+  robot_hand_scale:  {gate: hard, check: "video_compare robot_hand_scale median within the level's band (the robot looks as big as the real hand would at that place)"}
+  contact_timing:    {gate: hard, check: "first/last robot-object contact of the manipulated object vs the tracks' grasp/release events within contact_delay_frames_max"}
+  robot_placement:   {gate: hard, check: "T_world_base justified (reach over the whole reference, mount plausible for the robot: robot.yaml mount notes); no robot/static contact at the initial configuration"}
+  retargeting:       {gate: hard, check: "hand joints from the hand evidence with residuals reported (hand_retarget or own code); within limits; supplied joints, if used, verified the same way"}
+  physics_honest:    {gate: hard, check: "mujoco_rollout audit ok (no welds/mocap/applied forces), objects move only by contact, determinism check passes, simulation settings declared in scene.simulation"}
+  feasibility:       {gate: hard, check: "penetration (by category), joint limits, actuator saturation and tracking error within the level's thresholds"}
+  task_success:      {gate: hard, check: "every manipulated object ends in its observed final rest state within object_final_pos_cm_max / object_final_rot_deg_max, is never dropped, and rests stably afterwards"}
+  motion_fidelity:   {gate: hard, check: "lift-off/settle delays within event_delay_frames_max; object path and robot hand follow the video (object_iou_mean_min, hand_precision_mean_min); deviations from the reference explained (e.g. grasp repair windows)"}
+  render:            {gate: hard, check: "blender video of the whole episode from the source camera: robot visuals are the bundle's, lighting/materials consistent with the scene, no flicker/popping, objects follow the achieved motion; side_by_side.mp4 exists; appearance discrepancies reported for the following realism stage, not graded as trajectory success"}
+  deliverables:      {gate: hard, check: "scene_ir.validate ok (v0.3: robots, commanded + achieved motions, render.motion); mujoco/scene.xml rollout reproduces the achieved motion; blender/scene.blend reopens with the animation; export_usd checks ok (isaac/stage.usda, isaac/playback.usda); WORKING.md documents decisions and open issues"}
+soft_scores: [keypoint_to_glove_px, robot_hand_scale, object_iou_mean, hand_precision_mean, tracking_err_rad_p99, static_ssim]
+owner_on_failure:
+  tracks_rigid: registration
+  scene_metric_scale: registration (scene revision)
+  robot_hand_scale: registration (scene scale)
+  contact_timing: motion
+  registration: registration
+  robot_placement: placement
+  retargeting: retargeting
+  feasibility: motion
+  task_success: motion (grasp repair)
+  motion_fidelity: motion / registration
+  render: appearance

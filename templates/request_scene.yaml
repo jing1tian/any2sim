@@ -1,0 +1,22 @@
+# projects/<id>/request.yaml - what the builder agent is asked to deliver (written by the user / launcher)
+project: <id>
+inputs:
+  video: inputs/ego.mp4            # the only observation; see observation.yaml for what is withheld
+  notes: >
+    <scene hints, if any>
+goals:
+  - Reconstruct the scene as a Scene IR (scene/scene.yaml): cameras, metric scale with uncertainty, world frame,
+    static structure and every interactive object in every rest state, with collision and physics.
+  - Object geometry must match the real objects (proportions and structure: openings, slots, rims, handles...);
+    generated meshes are drafts to verify and refine or rebuild.
+  - A clean, photo-realistic Blender scene (blender/scene.blend): clean materials (no baked shadows, hands,
+    equipment, artifacts), one physically plausible lighting rig, realistic from the source view and new views.
+  - MuJoCo scene (mujoco/scene.xml) that is physically consistent.
+acceptance:
+  rubric: rubrics/scene.yaml
+  fidelity: usable
+  evaluator: stage-evaluator sub-agent (independent)
+budgets:
+  wall_clock_hours: 8
+  evaluations: 5
+deliverables: [scene/scene.yaml, blender/scene.blend, mujoco/scene.xml, WORKING.md, candidates/<k>/, evaluations/<k>/report.yaml]

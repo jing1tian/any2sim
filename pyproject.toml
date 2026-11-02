@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "any2sim"
+version = "0.1.0"
+description = "Video (+ optional calibration, trajectories, URDF) -> versioned digital twin: scene/object reconstruction, Blender appearance, simulation"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+  "numpy>=1.26,<2",
+  "scipy",
+  "opencv-python<4.12",
+  "pillow",
+  "pyyaml",
+  "jsonschema",
+  "trimesh",
+  "imageio",
+  "imageio-ffmpeg",
+  "scikit-image",
+  "matplotlib",
+  "mujoco==3.10.0",
+  "coacd",
+  "rtree",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+any2sim = "any2sim.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+any2sim = ["schemas/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

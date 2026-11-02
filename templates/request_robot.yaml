@@ -1,0 +1,22 @@
+# projects/{project}/request.yaml - robot onboarding (any embodiment)
+project: {project}
+stage: robot
+inputs:
+  description: {robot}                  # URDF (or MJCF) with meshes; see observation.yaml for everything supplied
+  notes: >
+    {task}
+    Supplied evidence may include real images/videos (head, wrist, external), joint and end-effector logs,
+    calibration, visual assets (covers, gloves, skins), photos of the real robot, hints (home pose, gains).
+goals:
+  - A RobotBundle (robot/) that is consistent with the real robot: kinematics, joint conventions, frames, hand/tool
+    mounting, init pose, cameras, actuation, collisions, and visuals that look like the real robot.
+  - Every check that the supplied evidence allows is run and recorded in robot.yaml checks with evidence files;
+    checks that cannot be run are listed as not_run with what evidence would be needed.
+acceptance:
+  rubric: rubrics/robot.yaml
+  fidelity: usable
+  evaluator: stage-evaluator sub-agent (independent)
+budgets:
+  wall_clock_hours: 4
+  evaluations: 3
+deliverables: [robot/robot.yaml, robot/robot.urdf, robot/robot.xml, robot/visual/, robot/checks/, WORKING.md]

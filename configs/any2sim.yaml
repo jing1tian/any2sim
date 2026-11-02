@@ -1,0 +1,46 @@
+# Machine configuration. ${ROOT} = repository root. Put machine-specific overrides in any2sim.local.yaml.
+projects_dir: ${ROOT}/projects
+
+environments:                 # one interpreter per dependency family (never one env for everything)
+  base: ${ROOT}/envs/base/bin/python       # any2sim CLI, geometry/IO tools, MuJoCo checks, CoACD
+  vision: ${ROOT}/envs/vision/bin/python   # SAM 3 (image), SAM 2.1 (video tracking), LPIPS
+  geom: ${ROOT}/envs/geom/bin/python       # Pi3 / Pi3X, MoGe-2
+  sam3d: ${ROOT}/envs/sam3d/bin/python     # SAM 3D Objects, nvdiffrast, pytorch3d, kaolin (CUDA 12.1)
+  render: ${ROOT}/envs/render/bin/python   # bpy 5.0.1 (Cycles), VOID inpainting, MuJoCo
+
+models:
+  hf_home: ${ROOT}/models/huggingface
+  torch_home: ${ROOT}/models/torch
+  src: ${ROOT}/models/src
+  sam3d_repo: ${ROOT}/models/src/sam-3d-objects
+  void_dir: ${ROOT}/models/src/void-model
+  pi3_repo: ${ROOT}/models/src/Pi3
+  pi3x_ckpt: ${ROOT}/models/checkpoints/pi3x/model.safetensors                  # yyfz233/Pi3X
+  moge2_ckpt: ${ROOT}/models/checkpoints/moge-2-vitl-normal/model.pt          # Ruicheng/moge-2-vitl-normal
+  sam2_checkpoint: ${ROOT}/models/huggingface/hub/models--facebook--sam2.1-hiera-large/snapshots/665f8e2ad61cf5f53d65644ff27c8ee525124610/sam2.1_hiera_large.pt
+
+assets:
+  robots: ${ROOT}/assets/robots
+
+gpus: [0, 1, 2, 3]
+max_rss_gb: 48                # tools above this resident memory are killed (shared machine)
+
+env:                          # every tool process
+  HF_HOME: ${ROOT}/models/huggingface
+  TORCH_HOME: ${ROOT}/models/torch
+  HF_ENDPOINT: https://hf-mirror.com
+  HF_HUB_OFFLINE: "1"
+  MUJOCO_GL: egl
+  PYOPENGL_PLATFORM: egl
+  __EGL_VENDOR_LIBRARY_FILENAMES: ${ROOT}/envs/egl/10_nvidia.json
+
+environment_env:              # per-env additions; *PATH values are prepended
+  render:
+    LD_LIBRARY_PATH: ${ROOT}/envs/render/syslibs/root/usr/lib/x86_64-linux-gnu
+    PATH: ${ROOT}/envs/render/syslibs/bin
+  sam3d:
+    CUDA_HOME: ${ROOT}/envs/cuda-12.1
+    CONDA_PREFIX: ${ROOT}/envs/cuda-12.1
+    PATH: ${ROOT}/envs/cuda-12.1/bin
+    LD_LIBRARY_PATH: ${ROOT}/envs/cuda-12.1/lib64
+    # Configure any required proxy in configs/any2sim.local.yaml or the process environment.

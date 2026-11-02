@@ -1,0 +1,38 @@
+# projects/{project}/request.yaml - data synthesis stage (resumed from {upstream})
+project: {project}
+stage: synthesis
+inputs:
+  scene: scene/scene.yaml               # frozen metric scene with the executed robot trajectory of {upstream}
+                                        # (robots, reference/commanded/achieved motions, render.motion); its
+                                        # evaluation: render/realism_review.json (+ upstream trajectory/scene reports)
+  robot: {robot}                        # verified RobotBundle (cameras head/wrist_*, actuators, data_mapping)
+  video: work/frames                    # source video frames (for the nominal-episode fidelity check)
+  dataset_format: null  # required user-supplied format; no bundled export adapter
+  notes: >
+    Task: "{task}". Do not read the source folders named in observation.yaml, other projects, or real robot data; use
+    only these inputs. The independent realism stage must have passed (render/realism_review.json). The demonstration is the upstream executed episode; every synthesized episode must be
+    physically executed (robot actuators only) and succeed.
+goals:
+  - >
+    A randomisation spec (synthesis/spec.yaml) whose ranges are justified by this scene: object/target placements
+    reachable by the robot and visible to the head camera, plausible lighting/texture/physics/sensor ranges.
+  - >
+    Diversified trajectories derived from the demonstration (object-centric re-anchoring, speed, grasp and via-point
+    variation), executed in MuJoCo with the variant's physics; only successful, physically plausible episodes kept,
+    rejection reasons reported.
+  - >
+    Photo-realistic multi-camera renders (head 1280x720, wrist_left/right 640x480 at 20 fps) of every accepted
+    episode with the variant's lights, materials and sensor effects (Blender Cycles).
+  - >
+    A dataset in a user-supplied format that a policy can train on: videos, per-frame state/action
+    table, instructions, per-episode provenance; audited by an independently validated user-supplied auditor.
+acceptance:
+  rubric: rubrics/synthesis.yaml
+  fidelity: usable
+  evaluator: stage-evaluator sub-agent (independent)
+budgets:
+  wall_clock_hours: 8
+  evaluations: 4
+  episodes: 50                          # accepted, rendered and exported episodes (excluding the nominal one)
+deliverables: [synthesis/spec.yaml, synthesis/episodes/, synthesis/renders/, dataset/<name>/, evidence/dataset_audit.json,
+               WORKING.md, candidates/<k>/, evaluations/<k>/report.yaml]

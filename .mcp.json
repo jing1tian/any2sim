@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "any2sim": {
+      "type": "stdio",
+      "command": "envs/base/bin/python",
+      "args": ["-m", "any2sim.mcp_server"],
+      "env": {"PYTHONPATH": "src"}
+    }
+  }
+}

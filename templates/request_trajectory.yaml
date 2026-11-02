@@ -1,0 +1,37 @@
+# projects/{project}/request.yaml - trajectory stage (resumed from {upstream})
+project: {project}
+stage: trajectory
+inputs:
+  video: inputs/ego.mp4                 # source video (same as the scene stage)
+  hand_tracks: inputs/hand_tracks.npz   # estimated human wrist poses + hand keypoints (+ externally retargeted hand
+                                        # joints) per video frame, in their own frame: see inputs/hand_tracks.yaml
+  robot: {robot}    # verified RobotBundle (robot.yaml: groups, retarget map, actuators, checks)
+  scene: scene/scene.yaml               # frozen result of {upstream}; its evaluation: upstream/scene_report.yaml
+  notes: >
+    Task: "{task}". Do not read the source folders named in observation.yaml, other projects, or real robot data; use
+    only these inputs. The robot replaces the human: same task, same objects, physically executed.
+goals:
+  - >
+    Register the hand tracks to the scene world from video evidence (where the hands are seen), with residuals and
+    a scale check against the scene's metric scale.
+  - >
+    Place the robot (T_world_base) so the task is reachable and the mounting is plausible for this robot.
+  - >
+    A reference motion (retargeted wrist/palm + finger targets) and a commanded motion that MuJoCo executes with the
+    robot's own actuators: objects move only through contact, the task succeeds (objects end where the video shows
+    them), contacts and limits are physically plausible, timing follows the video.
+  - >
+    Diagnostic Blender video of the executed episode from the source camera, compared for motion and registration;
+    independent realism refinement and acceptance follow this stage.
+  - >
+    The same Scene IR exports to MuJoCo (scene.xml), Blender (scene.blend) and Isaac (stage.usda + playback.usda).
+acceptance:
+  rubric: rubrics/trajectory.yaml
+  fidelity: usable
+  evaluator: stage-evaluator sub-agent (independent)
+budgets:
+  wall_clock_hours: 8
+  evaluations: 5
+deliverables: [scene/scene.yaml (v0.3 with robots + motions), mujoco/scene.xml, blender/scene.blend,
+               blender/renders/video.mp4, isaac/stage.usda, isaac/playback.usda, evidence/video_compare.json,
+               WORKING.md, candidates/<k>/, evaluations/<k>/report.yaml]

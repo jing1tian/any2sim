@@ -1,0 +1,34 @@
+rubric: realism
+version: 1.0.0
+fidelity_levels:
+  usable:
+    native_views_required: true
+    independent_review_required: true
+    isp_heldout_nonregression_required: true
+  precise:
+    native_views_required: true
+    independent_review_required: true
+    isp_heldout_nonregression_required: true
+    paired_reference_required_for_all_views: true
+criteria:
+  integrity: {gate: hard, check: "Protected commands, achieved states/timing, camera geometry, registration, dynamics and collision bytes unchanged; declared visual-only revisions preserve contact appearance."}
+  materials: {gate: hard, check: "No baked lighting/foreign content; material roles, coating/metal distinctions, fabric/rubber response and observed wear plausible across poses."}
+  lighting: {gate: hard, check: "Inspect linear diffuse/glossy direct/indirect passes and source images; explain highlight loss/colour spill before changing light power, albedo or ISP."}
+  signal_chain: {gate: hard, check: "Matched noisy/denoised/processed/actual decoded checkpoints and continuous videos at declared native size; diagnose where surface detail or tonal range is lost."}
+  surface_scale: {gate: hard, check: "Verify compiled UV-to-metre scale, projected feature size, near/far appearance and irregular manufacturing structure; no inflated relief to compensate for denoising or resolution."}
+  contact: {gate: hard, check: "Inspect visible support/grasp/nesting gaps, occlusion and shadows; visual/collision agreement, no painted AO hiding geometry errors."}
+  thin_surfaces: {gate: hard, check: "If present, inspect wall/rim/bottom thickness, nested clearances and supported transmission/coating hypotheses; otherwise pass only with an evidenced absence statement."}
+  temporal: {gate: hard, check: "Review full nominal sequence overview plus native peak-change windows and grasp/release; no texture swimming, unsupported exposure jumps or highlight switching. Statistics alone do not pass."}
+  perceptual_realism: {gate: hard, check: "Independent natural-appearance judgment across requested cameras; no single pixel metric or detailed asset establishes realism."}
+  reference_fidelity: {gate: hard, check: "Judge paired reference correspondence separately from natural appearance. Missing references have explicit scope/uncertainty; precise fidelity requires paired evidence for every view."}
+  camera: {gate: hard, check: "One camera:<name> check per requested camera. Nonidentity processing needs qualified disjoint held-out static support and nonregression; rejected/unsupported correction falls back to explicit identity and is rerendered. Identity is not calibration."}
+report_contract: docs/realism_stage.md
+owner_on_failure:
+  integrity: trajectory
+  contact: geometry_or_trajectory
+  materials: realism
+  lighting: realism
+  signal_chain: realism
+  surface_scale: realism
+  thin_surfaces: geometry_or_realism
+  camera: realism

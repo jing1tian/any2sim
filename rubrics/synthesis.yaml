@@ -1,0 +1,85 @@
+# Public release: export/audit roles require user-supplied adapters. Missing adapters block acceptance.
+# Acceptance rubric for a synthesized robot dataset (synthesis stage): randomised, physically executed, rendered
+# episodes derived from one executed demonstration. Every criterion is judged separately.
+# Protocol: skills/evaluate-dataset/SKILL.md. Most numbers come from dataset_audit and synth_rollout evidence,
+# re-measured by the evaluator.
+rubric: synthesis
+version: 0.2.0
+fidelity_levels:
+  usable:
+    episodes_min: request                 # request.yaml budgets.episodes (accepted, rendered, exported)
+    penetration_mm_max: {object_robot: 3.0, robot_static: 3.0, object_static: 2.0, robot_robot: 1.0}
+    arm_saturation_frac_max: 0.05         # non-finger actuators at their effort limit (fraction of steps)
+    hand_saturation_frac_max: 0.5         # finger actuators may sit at the limit while gripping
+    joint_limit_violation_rad_max: 0.01
+    replay_success_min: 1.0               # sampled episodes re-executed from the EXPORTED actions succeed
+    mapping_max_abs: 1.0e-5               # exported action/state columns vs commanded/achieved motions (float32)
+    replay_q_diff_rad_max: 0.2            # replay vs exported state: contact chaos amplifies float32 rounding;
+                                          # larger = an episode too sensitive to be a useful demonstration
+    nominal_q_diff_rad_max: 0.001         # nominal episode reproduces the upstream achieved motion
+    nominal_static_ssim_min: 0.75         # video_compare of the nominal head renders vs the source video
+    nominal_object_iou_mean_min: 0.55
+    coverage_min: 0.5                     # 4x4 grid cells hit / 16, per randomised object, over its declared range
+    yaw_coverage_min: 0.6                 # covered / declared yaw range per randomised object
+    range_coverage_min: 0.6               # light temperature, physics and speed: covered / declared range
+    near_duplicate_frac_max: 0.05         # episodes whose nearest end-effector path is < 1 cm (mean) away
+    material_kinds_min: 2                 # distinct appearance kinds per randomised entity (original, hsv, procedural, image)
+    luminance_range: [0.08, 0.9]          # per-frame mean luminance of every video (sampled frames)
+    bright_frac_max: 0.05                 # clipped highlights per frame
+    head_object_px_min: 150               # task object visible in the head camera at the start (1280x720)
+    label_iou_median_min: {head: 0.9, wrist_left: 0.85, wrist_right: 0.85}   # robot from exported state vs pixels
+    label_iou_min: 0.7
+    ee_fk_consistency: {pos_m: 0.001, rot_rad: 0.002}
+    realism_ratio_band: [0.75, 1.33]      # rendered/real low-level statistics of the nominal episode (encoded video):
+                                          # noise, sharpness, luma_p50, luma_p95, saturation, colourfulness
+  precise:
+    episodes_min: request
+    penetration_mm_max: {object_robot: 1.5, robot_static: 1.5, object_static: 1.0, robot_robot: 0.5}
+    arm_saturation_frac_max: 0.01
+    hand_saturation_frac_max: 0.3
+    joint_limit_violation_rad_max: 0.0
+    replay_success_min: 1.0
+    mapping_max_abs: 1.0e-5
+    replay_q_diff_rad_max: 0.05
+    nominal_q_diff_rad_max: 0.0001
+    nominal_static_ssim_min: 0.85
+    nominal_object_iou_mean_min: 0.7
+    coverage_min: 0.75
+    yaw_coverage_min: 0.8
+    range_coverage_min: 0.8
+    near_duplicate_frac_max: 0.0
+    material_kinds_min: 3
+    luminance_range: [0.1, 0.85]
+    bright_frac_max: 0.02
+    head_object_px_min: 300
+    label_iou_median_min: {head: 0.95, wrist_left: 0.9, wrist_right: 0.9}
+    label_iou_min: 0.8
+    ee_fk_consistency: {pos_m: 0.0005, rot_rad: 0.001}
+    realism_ratio_band: [0.85, 1.18]
+criteria:
+  inputs_respected:   {gate: hard, check: "only the request's inputs used (observation.yaml); withheld files, other projects and real robot data never read; no real-data paths in the dataset (dataset_audit provenance)"}
+  upstream_frozen:    {gate: hard, check: "base scene core digest and upstream motion hashes unchanged (observation.yaml upstream, synthesis/episodes.yaml base_core_sha256); robot bundle physics unchanged (scene_ir.bundle_compatible: same or appearance); randomisation only through variant overlays"}
+  spec_justified:     {gate: hard, check: "synthesis/spec.yaml ranges justified in WORKING.md with evidence from this scene: placements reachable (IK margin) and visible to the head camera, on the support surface, no overlaps; lighting/material/physics/sensor ranges plausible for the real setup (not chosen to inflate acceptance); the task predicate matches the task"}
+  physics_honest:     {gate: hard, check: "every episode: model audit ok (no welds/mocap/applied forces), robot driven only by its actuators, objects move only by contact, variant poses set only at t=0; determinism check passes"}
+  episode_validity:   {gate: hard, check: "every exported episode: success predicate true (re-check from achieved.npz), penetration / saturation (arm, hand) / joint limits within the level's thresholds, object at rest and released at the end"}
+  replay:             {gate: hard, check: "dataset_audit on episodes the evaluator picks: mapping (exported actions = commanded targets, exported state = achieved rollout: mapping_max_abs), replay from the exported float32 actions succeeds (replay_success_min) and stays close (replay_q_diff_rad_max)"}
+  nominal_fidelity:   {gate: hard, check: "nominal episode reproduces the upstream achieved motion (nominal_q_diff_rad_max); its head renders vs the source video (video_compare, synthesis/renders/nominal/head_frames): nominal_static_ssim_min, nominal_object_iou_mean_min"}
+  diversity:          {gate: hard, check: "coverage_min / yaw_coverage_min per randomised object, range_coverage_min for lighting, physics and speed, material_kinds_min per randomised entity, near_duplicate_frac_max; acceptance did not collapse a range (accepted vs rejected placements, synth_rollout_layout.png)"}
+  rendering:          {gate: hard, check: "look at frames of several episodes and all cameras: robot visuals are the bundle's, objects follow the motion, no popping/flicker/black or blown frames, textures/lights plausible, wrist cameras show the hand and scene like a real wrist camera (distortion); luminance_range, bright_frac_max"}
+  realism:            {gate: hard, check: "camera model fitted to the source video (camera_calibrate; kept components validated on held-out frames, rejections explained) and applied; robot appearance from the bundle (cables, part materials); realism_metrics on the nominal episode (encoded video) and on all episodes: low-level ratios within realism_ratio_band (luma_p5 reported: deep shadows are a scene-lighting property), KID and c2st_auc reported with a before/after comparison; dressing render-only and outside the robot's workspace"}
+  visibility:         {gate: hard, check: "task object visible in the head camera at the start (head_object_px_min); wrist cameras not fully occluded"}
+  label_consistency:  {gate: hard, check: "dataset_audit labels: robot silhouette from the exported state vs the rendered robot mask, per camera (label_iou_median_min, label_iou_min); ee_fk_consistency"}
+  format:             {gate: hard, check: "dataset_audit format: zero errors (files, columns, dims, dtype, frame counts, video sizes, fps); unavailable columns listed in the dataset card; instructions present"}
+  deliverables:       {gate: hard, check: "synthesis/spec.yaml, synthesis/episodes.yaml + episodes, renders, dataset/<name>/ with dataset_card.yaml, evidence (synth_rollout, synth_render, dataset_export, dataset_audit), WORKING.md with decisions, acceptance statistics and open issues"}
+  episodes_count:     {gate: hard, check: "accepted, rendered, exported episodes >= episodes_min (excluding nominal)"}
+soft_scores: [acceptance_rate, coverage, label_iou_median, nominal_static_ssim, replay_q_diff_rad, kid_x1000, c2st_auc]
+owner_on_failure:
+  spec_justified: spec
+  episode_validity: transfer / spec ranges
+  replay: export (precision, column mapping) / physics determinism
+  nominal_fidelity: rendering / upstream
+  diversity: spec ranges / transfer robustness
+  rendering: synth_render settings / materials
+  realism: camera model (camera_calibrate) / dressing and lighting ranges / robot appearance (robot stage)
+  label_consistency: export conventions / render cameras
+  format: dataset_export

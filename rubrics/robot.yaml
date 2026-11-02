@@ -1,0 +1,31 @@
+# Acceptance rubric for a RobotBundle (robot onboarding, any embodiment). Checks that the supplied evidence cannot
+# support are recorded as not_run with the missing evidence; they do not pass silently.
+rubric: robot
+version: 0.1.0
+fidelity_levels:
+  usable:
+    fk_pos_mm_p95_max: 3.0                # FK vs logged EE poses (after fitting the constant frames)
+    fk_rot_deg_p95_max: 2.0
+    visual_offset_mm_p95_max: 2.0         # replacement visuals vs the description's own visual meshes
+    camera_iou_mean_min: {external_or_head: 0.65, wrist: 0.75}
+    rest_self_penetration_mm_max: 0.5
+  precise:
+    fk_pos_mm_p95_max: 1.5
+    fk_rot_deg_p95_max: 1.0
+    visual_offset_mm_p95_max: 1.0
+    camera_iou_mean_min: {external_or_head: 0.75, wrist: 0.85}
+    rest_self_penetration_mm_max: 0.0
+criteria:
+  loads:              {gate: hard, check: "bundle.validate ok; MuJoCo compiles robot.xml; masses/inertias positive; every movable joint actuated or mimic"}
+  kinematics:         {gate: hard, check: "with EE logs: robot_log_check best fit within fk thresholds (link and frame documented); without: not_run + what log would verify it"}
+  joint_conventions:  {gate: hard, check: "logged joint values within limits; signs/order/zeros verified on images (overlays with logged joints, hypotheses compared when ambiguous); hands/grippers too"}
+  mounting:           {gate: hard, check: "tool/hand mounting verified from a view that sees arm and tool together (not from a camera rigid to the tool)"}
+  init_pose:          {gate: hard, check: "init_pose from real data (first frame / rest) or documented source; overlay on a real rest frame when images exist"}
+  visuals:            {gate: hard, check: "every visible link has a visual; replacement visuals aligned (visual_offset_mm_p95_max) in the description's link frames; appearance resembles the real robot in photos/frames (materials, covers, gloves)"}
+  collisions:         {gate: hard, check: "collision geometry covers the real contact surfaces (covers/gloves included); no self-penetration at rest; excluded pairs listed with reasons"}
+  cameras:            {gate: soft, check: "robot-mounted cameras fitted or calibrated, with overlays and IoU; intrinsics source stated"}
+  cables:             {gate: soft, check: "with images: visible cables/wires modelled (robot.yaml cables, robot_cables): curve->mask median px and mask coverage reported, overlay on frames not used for anchors; unobserved cables marked mirrored/assumed"}
+  appearance:         {gate: soft, check: "with images: per-part materials from de-lit observations (robot_appearance) or justified authoring; render at real rows resembles the frames (part colours, metal vs plastic, gloves); appearance-only revisions keep physics_digest"}
+  actuation:          {gate: hard, check: "actuator gains/limits declared with provenance; effort/velocity limits from the description or data"}
+  retarget_map:       {gate: soft, check: "for hands: keypoint correspondence (robot.yaml retarget) documented"}
+  provenance:         {gate: hard, check: "every profile field has provenance (observed | fitted | prior | supplied)"}

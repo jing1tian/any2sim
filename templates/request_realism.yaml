@@ -1,0 +1,32 @@
+# Independent appearance stage after the accepted trajectory of {upstream}.
+project: {project}
+stage: realism
+inputs:
+  scene: scene/scene.yaml
+  trajectory_report: upstream/trajectory_report.yaml
+  robot: {robot}
+  video: work/frames
+  notes: >
+    Task: "{task}". Use only observation.yaml inputs. Preserve achieved/commanded
+    motion, timestamps, registration, camera geometry, collision and dynamics.
+goals:
+  - >
+    Establish realistic materials, illumination and independently justified per-camera processing.
+  - >
+    Freeze realism/protocol.yaml before fitting; retain matched noisy/denoised/processed/decoded evidence,
+    linear lighting passes, surface/contact crops and continuous native nominal videos.
+  - >
+    Diagnose source-supported material scale, manufacturing structure, thin surfaces and contact appearance;
+    separate perceptual realism from paired-reference fidelity and record ineffective trials.
+  - >
+    Obtain an independent realism review; failed or unknown evidence blocks synthesis.
+acceptance:
+  rubric: rubrics/realism.yaml
+  fidelity: usable
+  evaluator: stage-evaluator sub-agent (independent)
+budgets:
+  wall_clock_hours: 8
+  evaluations: 5
+deliverables: [scene/scene.yaml, realism/protocol.yaml, realism/protocol.lock.json, realism/protected.json,
+               realism/renders/nominal/, realism/check.json, render/realism_baseline.json,
+               render/realism_review.json, WORKING.md, candidates/<k>/, evaluations/<k>/report.yaml]

@@ -1,0 +1,35 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+/envs/
+/models/
+/assets/
+/logs/
+.efc_*
+projects/*/
+!projects/README.md
+configs/any2sim.local.yaml
+.claude/settings.local.json
+/dev/
+
+# Local API credentials and isolated Codex state
+/.local/
+
+# Private configuration, authentication material and local state
+.env
+.env.*
+!.env.example
+*.local.yaml
+*.local.yml
+*.local.json
+*.pem
+*.key
+*.p12
+*.pfx
+.ssh/
+.aws/
+credentials.json
+token.json
+*.log
+.DS_Store
